@@ -67,10 +67,6 @@ function Ball:new(name, context, x, y, radius, color)
     end
     b:activate("scale_radius")
     
-
-    
-    
-
     b.appearance = function(self)
         love.graphics.setColor(self.properties.color)
         love.graphics.circle("fill", self.properties.x, self.properties.y, self.properties.r)

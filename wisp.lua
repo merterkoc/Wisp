@@ -152,40 +152,27 @@ function Wisp:attend(state)
 end
 
 ------------------------------------------------------------
---  INPUT HANDLING (to be placed in main.lua)
+--  INPUT HANDLING (executed in main.lua)
 --  Recursively propagates key events to all wisps
+--------------------------------------------------
 ------------------------------------------------------------
---[[
-local function handle_input(wisp, event, key)
-    -- run attendance logic if defined
-    if type(wisp.attendance) == "function" then
-        wisp:attendance(event, key)
-    end
-
-    -- process control bindings
-    for _, c in ipairs(wisp.controls) do
+-- Recursive input handler
+------------------------------------------------------------
+function Wisp:handle_input(event, key)
+    for _, c in ipairs(self.controls) do
         if c.event == event and c.key == key then
-            if (not c.requires_attend) or wisp.attended then
-                local func = wisp[c.action]
-                if type(func) == "function" then func(wisp) end
+            if (not c.requires_attend) or self.attended then
+                local func = self[c.action]
+                if type(func) == "function" then func(self) end
             end
         end
     end
-
-    -- recurse into child wisps
-    for _, sub in pairs(wisp.content) do
-        handle_input(sub, event, key)
+    for _, sub in pairs(self.content) do
+        if type(sub.handle_input) == "function" then
+            sub:handle_input(event, key)
+        end
     end
 end
-
-function love.keypressed(key)
-    handle_input(root, "keypressed", key)
-end
-
-function love.keyreleased(key)
-    handle_input(root, "keyreleased", key)
-end
-]]
 
 --========================================================--
 --  RETURN CLASS

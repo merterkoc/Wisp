@@ -5,7 +5,9 @@
 
 local Wisp = require("wisp")
 
--- auto-require all .lua files except excluded
+------------------------------------------------------------
+--  Auto-require all entity modules except excluded ones
+------------------------------------------------------------
 local exclude = { main = true, conf = true, wisp = true, app = true, root = true }
 for _, file in ipairs(love.filesystem.getDirectoryItems("")) do
     if file:match("%.lua$") then
@@ -16,20 +18,27 @@ for _, file in ipairs(love.filesystem.getDirectoryItems("")) do
     end
 end
 
--- define App class
+------------------------------------------------------------
+--  Define App class
+------------------------------------------------------------
 local App = setmetatable({}, { __index = Wisp })
 App.__index = App
 
+------------------------------------------------------------
+--  Constructor
+------------------------------------------------------------
 function App:new(name, context)
     local a = Wisp.new(self, name or "app", context)
 
     a.properties = {
-        width = 800,
+        width  = 800,
         height = 600,
-        title = "Wisp Application"
+        title  = "Wisp Application"
     }
 
-    -- init window once
+    --------------------------------------------------------
+    --  Autonomy: Initialize window once
+    --------------------------------------------------------
     a.autonomy = function(self)
         if not self.properties.initialized then
             love.window.setMode(self.properties.width, self.properties.height)
@@ -38,61 +47,72 @@ function App:new(name, context)
         end
     end
 
-    -- background
-    a.appearance = function(self)
+    --------------------------------------------------------
+    --  Appearance: Background color
+    --------------------------------------------------------
+    a.appearance = function()
         love.graphics.clear(0.1, 0.1, 0.1)
     end
 
-    -- controls
+    --------------------------------------------------------
+    --  Controls
+    --------------------------------------------------------
     a:add_control("keypressed", "space", "spawn_ball", false)
-    a:add_control("keypressed", "l", "spawn_hole", false)
-    a:add_control("keypressed", "a", "attend_random", false)
-    a:add_control("keypressed", "b", "attend_random_2", false)
+    a:add_control("keypressed", "l",     "spawn_hole", false)
+    a:add_control("keypressed", "a",     "attend_random", false)
+    a:add_control("keypressed", "b",     "attend_random_2", false)
 
     --------------------------------------------------------
-    -- FUNCTIONS
+    --  METHODS
     --------------------------------------------------------
-
-    a.spawn_hole = function(self)
+    function a:spawn_hole()
         self:add_wisp(Hole:new("hole_" .. tostring(os.clock()), self))
     end
 
-    a.spawn_ball = function(self)
+    function a:spawn_ball()
         self:add_wisp(Ball:new("ball_" .. tostring(os.clock()), self))
     end
 
-    -- randomly attend 1 wisp of type Ball
-    function a:attend_random()
-        local balls = {}
+    --------------------------------------------------------
+    --  Picks N random wisps of a given class type
+    --  Example: self:pick_random("Ball", 3)
+    --------------------------------------------------------
+    function a:pick_random(wisp_type, n)
+        local list = {}
+        local class = _G[wisp_type]
+        if not class then return {} end
+
         for _, w in pairs(self.content) do
-            if w.type and w:type() == Ball then table.insert(balls, w) end
+            if w:type() == class then table.insert(list, w) end
         end
-        if #balls == 0 then return end
-        local rand_index = math.random(1, #balls)
-        for i, b in ipairs(balls) do
-            b:attend(i == rand_index)
+        if #list == 0 then return {} end
+
+        local selected, picked = {}, {}
+        n = math.min(n, #list)
+
+        while #selected < n do
+            local idx = math.random(1, #list)
+            if not picked[idx] then
+                picked[idx] = true
+                table.insert(selected, list[idx])
+            end
         end
+
+        return selected
     end
 
-    -- randomly attend up to 2 wisps of type Ball
-    function a:attend_random_2()
-        local balls = {}
-        for _, w in pairs(self.content) do
-            if w.type and w:type() == Ball then table.insert(balls, w) end
-        end
-        local total = #balls
-        if total == 0 then return end
+    --------------------------------------------------------
+    --  Attendance Functions
+    --------------------------------------------------------
+function a:attend_random()
+    for _, w in pairs(self.content) do w:attend(false) end
+    for _, b in ipairs(self:pick_random("Ball", 1)) do b:attend(true) end
+end
 
-        for _, b in ipairs(balls) do b:attend(false) end
-
-        local first = math.random(1, total)
-        local second = first
-        if total > 1 then
-            repeat second = math.random(1, total) until second ~= first
-        end
-        balls[first]:attend(true)
-        if total > 1 then balls[second]:attend(true) end
-    end
+function a:attend_random_2()
+    for _, w in pairs(self.content) do w:attend(false) end
+    for _, b in ipairs(self:pick_random("Ball", 2)) do b:attend(true) end
+end
 
     return a
 end

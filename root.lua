@@ -1,21 +1,28 @@
 --========================================================--
 --  ROOT WISP
---  Central container for all wisps.
+--  Top-level container of the entire Wisp hierarchy.
+--  Holds and manages the App wisp as its primary child.
 --========================================================--
 
 local Wisp = require("wisp")
+local App  = require("app")
+
+------------------------------------------------------------
+-- Class definition
+------------------------------------------------------------
 local Root = setmetatable({}, { __index = Wisp })
 Root.__index = Root
-local App = require("app")
 
+------------------------------------------------------------
+-- Constructor
+------------------------------------------------------------
 function Root:new()
     local r = Wisp.new(self, "root", nil)
 
-    r.appearance = function(self)
-        -- nothing; App handles visuals
-    end
+    -- root itself has no visual logic
+    r.appearance = function() end
 
-    -- create and add the App wisp
+    -- create and attach the App wisp
     local app = App:new("app", r)
     r:add_wisp(app)
 

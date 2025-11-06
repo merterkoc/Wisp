@@ -1,180 +1,128 @@
 --========================================================--
---  WISP CLASS (Base Entity Framework)
---  Provides hierarchical entity management, process flow,
---  control binding, and rendering/update recursion.
+--  WISP CLASS
+--  Base entity framework for hierarchical, autonomous units
 --========================================================--
 
 local Wisp = {}
 Wisp.__index = Wisp
 
 ------------------------------------------------------------
--- Constructor: Create new Wisp instance
+-- Constructor
 ------------------------------------------------------------
 function Wisp:new(name, context)
     local w = setmetatable({}, self)
     math.randomseed(os.clock() * 1e9)
-    w.id = tostring(math.random(1e9))        -- unique random id
-    w.name = name or ""                      -- name of the wisp
-    w.context = context or nil               -- parent wisp (if any)
-    w.content = {}                           -- contained wisps
-    w.properties = {}                        -- static data of the wisp
-    w.state = "idle"                         -- current state tag
-    w.processes = {}                         -- list of active method names
-    w.autonomy = function(self) end          -- always-active logic
-    w.appearance = function(self) end        -- visualization function
-    w.attended = false                       -- true if currently attended (focused)
-    w.controls = {}                          -- key-event to function bindings
-
-    -- context validation hook
+    w.id = tostring(math.random(1e9))
+    w.name = name or ""
+    w.context = context
+    w.content = {}
+    w.properties = {}
+    w.state = "idle"
+    w.processes = {}
+    w.autonomy = function() end
+    w.appearance = function() end
+    w.attended = false
+    w.controls = {}
     if not w:check_context() then
-        error("Wisp '" .. (w.name or "?") .. "' initialization failed: invalid context.")
+        error("Invalid context for wisp '" .. (w.name or "?") .. "'")
     end
-
     return w
 end
 
 ------------------------------------------------------------
--- Default context validation
--- Override in subclasses when specific context properties are required
+-- Context validation (override in subclasses if needed)
 ------------------------------------------------------------
 function Wisp:check_context()
     return true
 end
---[[
-Example:
-function StressWisp:check_context()
-    return self.context
-       and self.context.properties
-       and self.context.properties.stress_level
-end
-]]--
 
 ------------------------------------------------------------
--- Returns the metatable (class type)
+-- Get class type
 ------------------------------------------------------------
 function Wisp:type()
     return getmetatable(self)
 end
 
 ------------------------------------------------------------
--- Lists only instance-level methods (not class-defined)
+-- List instance-only methods
 ------------------------------------------------------------
 function Wisp:list_instance_methods()
-    local methods = {}
-    local class = getmetatable(self)
+    local methods, class = {}, getmetatable(self)
     for k, v in pairs(self) do
         if type(v) == "function" and type(class[k]) ~= "function" then
-            table.insert(methods, k)
+            methods[#methods + 1] = k
         end
     end
     return methods
 end
 
 ------------------------------------------------------------
--- Adds a sub-wisp to this wisp
+-- Add / Get sub-wisps
 ------------------------------------------------------------
 function Wisp:add_wisp(entity)
-    if not entity.name or entity.name == "" then
-        error("Unnamed wisp.")
-    end
-    if self.content[entity.name] then
-        error("Duplicate wisp: " .. entity.name)
-    end
+    if not entity.name or entity.name == "" then error("Unnamed wisp.") end
+    if self.content[entity.name] then error("Duplicate wisp: " .. entity.name) end
     entity.context = self
     self.content[entity.name] = entity
 end
 
-------------------------------------------------------------
--- Adds a control binding (for LÖVE input events)
--- Example:
--- self:add_control("keypressed", "w", "move_up", true)
--- The last argument (requires_attend) determines if the control
--- should only trigger when the wisp is attended.
-------------------------------------------------------------
-function Wisp:add_control(event, key, action, requires_attend)
-    table.insert(self.controls, {
-        event = event,
-        key = key,
-        action = action,
-        requires_attend = requires_attend or false
-    })
-end
-
-------------------------------------------------------------
--- Returns a sub-wisp by name
-------------------------------------------------------------
 function Wisp:get_wisp(name)
     return self.content[name]
 end
 
 ------------------------------------------------------------
--- Update routine
--- Runs autonomy, active processes, and sub-wisp updates
+-- Controls
+------------------------------------------------------------
+function Wisp:add_control(event, key, action, requires_attend)
+    self.controls[#self.controls + 1] = {
+        event = event,
+        key = key,
+        action = action,
+        requires_attend = requires_attend or false
+    }
+end
+
+------------------------------------------------------------
+-- Update & Draw
 ------------------------------------------------------------
 function Wisp:update()
-    self.autonomy(self)  -- always-active logic
-    for _, name in ipairs(self.processes) do  -- run listed methods
-        if type(self[name]) == "function" then
-            self[name](self)
-        end
+    self:autonomy()
+    for _, name in ipairs(self.processes) do
+        if type(self[name]) == "function" then self[name](self) end
     end
-    for _, w in pairs(self.content) do        -- update contained wisps
-        if type(w) == "table" and w.update then
-            w:update()
-        end
-    end
-end
-
-------------------------------------------------------------
--- Draw routine
--- Calls appearance() and recursively draws sub-wisps
-------------------------------------------------------------
-function Wisp:draw()
-    self.appearance(self)
     for _, w in pairs(self.content) do
-        if type(w) == "table" and w.draw then
-            w:draw()
-        end
+        if w.update then w:update() end
+    end
+end
+
+function Wisp:draw()
+    self:appearance()
+    for _, w in pairs(self.content) do
+        if w.draw then w:draw() end
     end
 end
 
 ------------------------------------------------------------
--- Attend / Unattend toggle
--- Call with true/false to set explicitly
--- Call with no argument to toggle
+-- Attendance
 ------------------------------------------------------------
 function Wisp:attend(state)
-    if state == nil then
-        self.attended = not self.attended
-    else
-        self.attended = state and true or false
-    end
+    self.attended = (state == nil) and not self.attended or not not state
 end
 
 ------------------------------------------------------------
---  INPUT HANDLING (executed in main.lua)
---  Recursively propagates key events to all wisps
---------------------------------------------------
-------------------------------------------------------------
--- Recursive input handler
+-- Recursive input handling
 ------------------------------------------------------------
 function Wisp:handle_input(event, key)
     for _, c in ipairs(self.controls) do
-        if c.event == event and c.key == key then
-            if (not c.requires_attend) or self.attended then
-                local func = self[c.action]
-                if type(func) == "function" then func(self) end
-            end
+        if c.event == event and c.key == key
+           and ((not c.requires_attend) or self.attended) then
+            local func = self[c.action]
+            if type(func) == "function" then func(self) end
         end
     end
     for _, sub in pairs(self.content) do
-        if type(sub.handle_input) == "function" then
-            sub:handle_input(event, key)
-        end
+        if sub.handle_input then sub:handle_input(event, key) end
     end
 end
 
---========================================================--
---  RETURN CLASS
---========================================================--
 return Wisp

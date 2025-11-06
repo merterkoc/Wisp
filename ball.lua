@@ -44,7 +44,8 @@ function Ball:new(name, context, x, y, radius, color)
     function b:move_right()
         self.properties.x = self.properties.x + self.properties.speed
     end
-
+    
+  
     --------------------------------------------------------
     -- AUTONOMY & APPEARANCE
     --------------------------------------------------------

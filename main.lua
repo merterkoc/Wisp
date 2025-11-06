@@ -1,4 +1,4 @@
--- main.lua
+ -- main.lua
 
 local Root = require("root")
 

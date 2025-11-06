@@ -57,10 +57,10 @@ function App:new(name, context)
     --------------------------------------------------------
     --  Controls
     --------------------------------------------------------
-    a:add_control("keypressed", "space", "spawn_ball", false)
-    a:add_control("keypressed", "l",     "spawn_hole", false)
-    a:add_control("keypressed", "a",     "attend_random", false)
-    a:add_control("keypressed", "b",     "attend_random_2", false)
+    a:add_control("spawn_ball",    "keypressed", "space", false)
+    a:add_control("spawn_hole",    "keypressed", "l",     false)
+    a:add_control("attend_random", "keypressed", "a",     false)
+    a:add_control("attend_random_2","keypressed","b",     false)
 
     --------------------------------------------------------
     --  METHODS
@@ -73,10 +73,7 @@ function App:new(name, context)
         self:add_wisp(Ball:new("ball_" .. tostring(os.clock()), self))
     end
 
-    --------------------------------------------------------
     --  Picks N random wisps of a given class type
-    --  Example: self:pick_random("Ball", 3)
-    --------------------------------------------------------
     function a:pick_random(wisp_type, n)
         local list = {}
         local class = _G[wisp_type]
@@ -101,18 +98,16 @@ function App:new(name, context)
         return selected
     end
 
-    --------------------------------------------------------
-    --  Attendance Functions
-    --------------------------------------------------------
-function a:attend_random()
-    for _, w in pairs(self.content) do w:attend(false) end
-    for _, b in ipairs(self:pick_random("Ball", 1)) do b:attend(true) end
-end
 
-function a:attend_random_2()
-    for _, w in pairs(self.content) do w:attend(false) end
-    for _, b in ipairs(self:pick_random("Ball", 2)) do b:attend(true) end
-end
+    function a:attend_random()
+        for _, w in pairs(self.content) do w:attend(false) end
+        for _, b in ipairs(self:pick_random("Ball", 1)) do b:attend(true) end
+    end
+
+    function a:attend_random_2()
+        for _, w in pairs(self.content) do w:attend(false) end
+        for _, b in ipairs(self:pick_random("Ball", 2)) do b:attend(true) end
+    end
 
     return a
 end

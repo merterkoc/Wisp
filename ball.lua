@@ -15,16 +15,17 @@ function Ball:new(name, context, x, y, radius, color)
     }
 
     function b:move_up()    self.properties.y = self.properties.y - self.properties.speed end
-    b:add_control("keypressed", "up", "move_up", true)
-        
+    b:add_control("move_up", "keypressed", "up", true)
+
     function b:move_down()  self.properties.y = self.properties.y + self.properties.speed end
-    b:add_control("keypressed", "down", "move_down", true)
-        
+    b:add_control("move_down", "keypressed", "down", true)
+
     function b:move_left()  self.properties.x = self.properties.x - self.properties.speed end
-    b:add_control("keypressed", "left", "move_left", true)
-    
+    b:add_control("move_left", "keypressed", "left", true)
+
     function b:move_right() self.properties.x = self.properties.x + self.properties.speed end
-    b:add_control("keypressed", "right", "move_right", true)
+    b:add_control("move_right", "keypressed", "right", true)
+
 
     b.autonomy = function(self)
         if self.attended then

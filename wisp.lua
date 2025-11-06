@@ -71,16 +71,29 @@ function Wisp:get_wisp(name)
 end
 
 ------------------------------------------------------------
--- Controls
+-- Controls 
 ------------------------------------------------------------
-function Wisp:add_control(event, key, action, requires_attend)
-    self.controls[#self.controls + 1] = {
+function Wisp:add_control(action, event, key, requires_attend)
+    self.controls[action] = {
         event = event,
         key = key,
-        action = action,
         requires_attend = requires_attend or false
     }
 end
+
+function Wisp:remove_control(action)
+    self.controls[action] = nil
+end
+
+function Wisp:update_control(action, event, key, requires_attend)
+    if self.controls[action] then
+        self.controls[action].event = event or self.controls[action].event
+        self.controls[action].key = key or self.controls[action].key
+        self.controls[action].requires_attend =
+            (requires_attend == nil) and self.controls[action].requires_attend or requires_attend
+    end
+end
+
 
 ------------------------------------------------------------
 -- Update & Draw
@@ -113,10 +126,10 @@ end
 -- Recursive input handling
 ------------------------------------------------------------
 function Wisp:handle_input(event, key)
-    for _, c in ipairs(self.controls) do
+    for action, c in pairs(self.controls) do
         if c.event == event and c.key == key
            and ((not c.requires_attend) or self.attended) then
-            local func = self[c.action]
+            local func = self[action]
             if type(func) == "function" then func(self) end
         end
     end
@@ -124,5 +137,6 @@ function Wisp:handle_input(event, key)
         if sub.handle_input then sub:handle_input(event, key) end
     end
 end
+
 
 return Wisp
